@@ -11,6 +11,7 @@ const PROFILES = {
 class GPUMonitor {
     interval = null;
     gpuManager = null;
+    isInSpectateMode = false;
 
     constructor() {
         this.gpuManager = new GPUManager();
@@ -33,12 +34,20 @@ class GPUMonitor {
             console.log(`GPUMonitor: ${gpuTemp.actualWatt}W/${gpuTemp.maxWatt}W, is dota running? ${isDotaRunning}`);
 
             const gpuLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
-            if (isDotaRunning && gpuTemp.maxWatt < gpuLimit) {
-                await miner.kill();
-                await this.gpuManager.setGamingProfile();
-            } else if (!isDotaRunning && gpuTemp.maxWatt > gpuLimit) {
-                await miner.spawn();
-                await this.gpuManager.setMiningProfile();
+            const isAboveLimit = gpuTemp.maxWatt > gpuLimit
+            if (this.isInSpectateMode) {
+                if (isAboveLimit) {
+                    await miner.spawn();
+                    await this.gpuManager.setMiningProfile();
+                }
+            } else {
+                if (isDotaRunning && gpuTemp.maxWatt < gpuLimit) {
+                    await miner.kill();
+                    await this.gpuManager.setGamingProfile();
+                } else if (!isDotaRunning && isAboveLimit) {
+                    await miner.spawn();
+                    await this.gpuManager.setMiningProfile();
+                }
             }
         }, config.REFRESH_INTERVAL_TIME);
     }
@@ -52,6 +61,11 @@ class GPUMonitor {
         console.log(`GPUMonitor: ending watcher`);
         clearInterval(this.interval);
         this.interval = null;
+    }
+
+    toggleSpectateMode() {
+        this.isInSpectateMode = !this.isInSpectateMode;
+        console.log(`GPUMonitor: toggling spectate mode: ${this.isInSpectateMode}`);
     }
 }
 

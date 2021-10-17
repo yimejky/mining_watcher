@@ -25,6 +25,9 @@ async function main() {
         if (cmd === 'start' || cmd === 's') {
             monitor.start();
         }
+        if (cmd === "spectate" || cmd === 'spec') {
+            monitor.toggleSpectateMode();
+        }
 
         rl.prompt();
     });
