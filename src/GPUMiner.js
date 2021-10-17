@@ -4,6 +4,7 @@ const exec = util.promisify(require('child_process').exec);
 const spawn = util.promisify(require('child_process').spawn);
 const { isProcessRunning } = require('./helpers/isProcessRunning');
 const config = require('../config');
+const { CMD_PATH } = require('../config');
 
 class GPUMiner {
     async isRunning() {
@@ -23,7 +24,7 @@ class GPUMiner {
         }
 
         console.log(`GPUMiner: spawning miner`);
-        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: true, windowsHide: false });
+        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: true });
     }
 
     // getData() {

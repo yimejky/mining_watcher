@@ -31,7 +31,8 @@ class GPUMonitor {
         this.interval = setInterval(async () => {
             const gpuTemp = await this.gpuManager.getGpuTemp();
             const isDotaRunning = await isProcessRunning('dota');
-            console.log(`GPUMonitor: ${gpuTemp.actualWatt}W/${gpuTemp.maxWatt}W,  dota running ${isDotaRunning}, spectate ${this.isInSpectateMode}`);
+            const isMinerRunning = await miner.isRunning();
+            console.log(`GPUMonitor: ${gpuTemp.actualWatt}W/${gpuTemp.maxWatt}W,  dota running ${isDotaRunning}, spectate ${this.isInSpectateMode}, miner running ${isMinerRunning}`);
 
             const gpuLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
             const isAboveLimit = gpuTemp.maxWatt > gpuLimit
