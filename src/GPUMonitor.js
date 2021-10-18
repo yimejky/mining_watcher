@@ -11,11 +11,13 @@ const PROFILES = {
 class GPUMonitor {
     interval = null;
     gpuManager = null;
+    miner = null;
     isInSpectateMode = false;
 
     constructor() {
         this.gpuManager = new GPUManager();
         this.gpuManager.setMiningProfile();
+        this.miner = new GPUMiner();
     }
 
     async start() {
@@ -24,15 +26,14 @@ class GPUMonitor {
             return;
         }
 
-        const miner = new GPUMiner();
-        await miner.spawn();
+        await this.miner.spawn();
 
         console.log(`GPUMonitor: watching for change`);
         this.interval = setInterval(async () => {
             const [gpuTemp, isDotaRunning, isMinerRunning] = await Promise.all([
                 this.gpuManager.getGpuTemp(),
                 isProcessRunning('dota'),
-                miner.isRunning()
+                this.miner.isRunning()
             ])
             console.log(`GPUMonitor: ${gpuTemp.actualWatt}W/${gpuTemp.maxWatt}W,  dota running ${isDotaRunning}, spectate ${this.isInSpectateMode}, miner running ${isMinerRunning}`);
 
@@ -41,19 +42,19 @@ class GPUMonitor {
             if (this.isInSpectateMode) {
                 if (isAboveLimit) {
                     await Promise.all([
-                        miner.spawn(),
+                        this.miner.spawn(),
                         this.gpuManager.setMiningProfile()
                     ]);
                 }
             } else {
                 if (isDotaRunning && gpuTemp.maxWatt < gpuLimit) {
                     await Promise.all([
-                        miner.kill(),
+                        this.miner.kill(),
                         this.gpuManager.setGamingProfile()
                     ]);
                 } else if (!isDotaRunning && isAboveLimit) {
                     await Promise.all([
-                        miner.spawn(),
+                        this.miner.spawn(),
                         this.gpuManager.setMiningProfile()
                     ]);
                 }
@@ -61,7 +62,7 @@ class GPUMonitor {
         }, config.REFRESH_INTERVAL_TIME);
     }
 
-    stop() {
+    async stop() {
         if (!this.interval) {
             console.log(`GPUMonitor: watcher is not active`);
             return;
@@ -70,6 +71,9 @@ class GPUMonitor {
         console.log(`GPUMonitor: ending watcher`);
         clearInterval(this.interval);
         this.interval = null;
+
+        await this.miner.kill();
+        this.miner = null;
     }
 
     toggleSpectateMode() {

@@ -11,19 +11,19 @@ async function main() {
     const monitor = new GPUMonitor();
     await monitor.start();
 
-    rl.on('line', (line) => {
+    rl.on('line', async (line) => {
         const cmd = line.trim();
 
         if (cmd === 'exit' || cmd === 'e') {
-            monitor.stop()
+            await monitor.stop()
             rl.close();
             return;
         }
         if (cmd === 'pause' || cmd === 'p') {
-            monitor.stop();
+            await monitor.stop();
         }
         if (cmd === 'start' || cmd === 's') {
-            monitor.start();
+            await monitor.start();
         }
         if (cmd === "spectate" || cmd === 'spec') {
             monitor.toggleSpectateMode();
@@ -37,6 +37,8 @@ async function main() {
     });
     
     rl.prompt();
+
+    // TODO on process exit, clear miner
 }
 
 main();
