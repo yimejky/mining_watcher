@@ -1,5 +1,6 @@
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const logger = require('./helpers/logger');
 
 const config = require('../config');
 
@@ -28,12 +29,12 @@ class GPUManager {
     }
 
     async setMiningProfile() {
-        console.log('GPUManager.setMiningProfile: setting mining profile')
+        logger.log('info', 'GPUManager.setMiningProfile: setting mining profile')
         return await exec(`"${config.MSI_EXE_PATH}" -profile${config.MINING_PROFILE}`);
     }
 
     async setGamingProfile() {
-        console.log('GPUManager.setGamingProfile: setting gaming profile')
+        logger.log('info', 'GPUManager.setGamingProfile: setting gaming profile')
         return await exec(`"${config.MSI_EXE_PATH}" -profile${config.GAMING_PROFILE}`);
     }
 }
