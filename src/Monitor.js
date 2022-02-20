@@ -47,7 +47,7 @@ class Monitor {
         ];
         const [gpuInfo, minerRunningStats, isGameRunning] = await Promise.all(promises);
 
-        this.printIntervalInfo(gpuInfo, minerRunningStats);
+        this.printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning);
 
         const gpuConfigLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
         const isMaxAboveLimit = gpuInfo.maxWatt > gpuConfigLimit;
