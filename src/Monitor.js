@@ -36,7 +36,10 @@ class Monitor {
         clearInterval(this.interval);
         this.interval = null;
 
-        await this.miner.kill();
+        const minerRunningStats = await this.miner.getRunningStats();
+        if (minerRunningStats.isExeRunning) {
+            await this.miner.kill();
+        }
     }
 
     async intervalFn() {
