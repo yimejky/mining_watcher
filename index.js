@@ -1,4 +1,4 @@
-const { GPUMonitor } = require('./src/GPUMonitor');
+const { Monitor } = require('./src/Monitor');
 
 async function main() {
     const readline = require("readline");
@@ -8,7 +8,7 @@ async function main() {
         prompt: ''
     });
 
-    const monitor = new GPUMonitor();
+    const monitor = new Monitor();
     await monitor.start();
 
     rl.on('line', async (line) => {

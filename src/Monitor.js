@@ -4,12 +4,7 @@ const { isSomeProcessesRunning } = require('./helpers/isProcessRunning');
 const config = require('../config');
 const logger = require('./helpers/logger');
 
-const PROFILES = {
-    MINING: 'MINING',
-    GAMING: 'GAMING'
-}
-
-class GPUMonitor {
+class Monitor {
     interval = null;
     gpuManager = null;
     miner = null;
@@ -23,23 +18,21 @@ class GPUMonitor {
 
     async start() {
         if (this.interval) {
-            logger.log('info', `GPUMonitor: already watching for changes`);
+            logger.log('info', `Monitor: already watching for changes`);
             return;
         }
 
-        this.miner.resume();
-
-        logger.log('info', `GPUMonitor: watching for change`);
+        logger.log('info', `Monitor: watching for change`);
         this.interval = setInterval(this.intervalFn.bind(this), config.REFRESH_INTERVAL_TIME);
     }
 
     async stop() {
         if (!this.interval) {
-            logger.log('info', `GPUMonitor: watcher is not active`);
+            logger.log('info', `Monitor: watcher is not active`);
             return;
         }
 
-        logger.log('info', `GPUMonitor: ending watcher`);
+        logger.log('info', `Monitor: ending watcher`);
         clearInterval(this.interval);
         this.interval = null;
 
@@ -54,7 +47,12 @@ class GPUMonitor {
         ]);
 
         const consume = `${gpuInfo.actualWatt}W/${gpuInfo.maxWatt}W`;
-        logger.log('verbose', `GPUMonitor: ${consume}, D${isGameRunning ? '1' : '0'}, S${this.isInSpectateMode ? '1' : '0'}, M${minerRunningStats.isExeRunning ? '1' : '0'}`);
+        logger.log('verbose', `Monitor: ----------------------`);
+        logger.log('verbose', `Monitor: GPU ${consume}`);
+        logger.log('verbose', `Monitor: ${minerRunningStats.isExeRunning ? 'Miner Online' : 'Miner Offline'}`);
+        if (this.isInSpectateMode) logger.log(`Monitor: Spectate mode active`)
+        logger.log('verbose', `Monitor: ${isGameRunning ? 'Game Running' : 'No Game'}`)
+        logger.log('verbose', `Monitor:`);
 
         const gpuConfigLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
         const isMaxAboveLimit = gpuInfo.maxWatt > gpuConfigLimit;
@@ -65,7 +63,6 @@ class GPUMonitor {
             if (!minerRunningStats.isExeRunning) await this.miner.resume();
             if (isMaxAboveLimit) await this.gpuManager.setMiningProfile();
         } else {
-
             if (isGameRunning && minerRunningStats.isExeRunning) await this.miner.kill();
             if (isGameRunning && isMaxUnderLimit) await this.gpuManager.setGamingProfile();
 
@@ -76,10 +73,10 @@ class GPUMonitor {
 
     toggleSpectateMode() {
         this.isInSpectateMode = !this.isInSpectateMode;
-        logger.log('info', `GPUMonitor: toggling spectate mode: ${this.isInSpectateMode}`);
+        logger.log('info', `Monitor: toggling spectate mode: ${this.isInSpectateMode}`);
     }
 }
 
 module.exports = {
-    GPUMonitor
+    Monitor
 };
