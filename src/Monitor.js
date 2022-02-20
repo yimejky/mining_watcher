@@ -40,19 +40,14 @@ class Monitor {
     }
 
     async intervalFn() {
-        const [gpuInfo, isGameRunning, minerRunningStats] = await Promise.all([
+        const promises = [
             this.gpuManager.getGpuInfo(),
+            this.miner.getRunningStats(),
             isSomeProcessesRunning(config.GAMES_EXES),
-            this.miner.getRunningStats()
-        ]);
+        ];
+        const [gpuInfo, minerRunningStats, isGameRunning] = await Promise.all(promises);
 
-        const consume = `${gpuInfo.actualWatt}W/${gpuInfo.maxWatt}W`;
-        logger.log('verbose', `Monitor: ----------------------`);
-        logger.log('verbose', `Monitor: GPU ${consume}`);
-        logger.log('verbose', `Monitor: ${minerRunningStats.isExeRunning ? 'Miner Online' : 'Miner Offline'}`);
-        if (this.isInSpectateMode) logger.log(`Monitor: Spectate mode active`)
-        logger.log('verbose', `Monitor: ${isGameRunning ? 'Game Running' : 'No Game'}`)
-        logger.log('verbose', `Monitor:`);
+        this.printIntervalInfo(gpuInfo, minerRunningStats);
 
         const gpuConfigLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
         const isMaxAboveLimit = gpuInfo.maxWatt > gpuConfigLimit;
@@ -74,6 +69,28 @@ class Monitor {
     toggleSpectateMode() {
         this.isInSpectateMode = !this.isInSpectateMode;
         logger.log('info', `Monitor: toggling spectate mode: ${this.isInSpectateMode}`);
+    }
+
+    printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning) {
+        const { actualWatt, maxWatt } = gpuInfo;
+        const { isExeRunning, hasData, minutes, hashRate } = minerRunningStats;
+
+        const parsedHash = (hashRate / 1000).toFixed(2);
+        const consume = `${actualWatt}W/${maxWatt}W`;
+        const minerStatRender = isExeRunning
+            ? (
+                hasData
+                    ? `Miner ${minutes}m ${parsedHash} MH/s`
+                    : 'Miner starting'
+            )
+            : 'Miner Offline';
+
+        logger.log('verbose', `Monitor: ----------------------`);
+        logger.log('verbose', `Monitor: GPU ${consume}`);
+        logger.log('verbose', `Monitor: ${minerStatRender}`);
+        if (this.isInSpectateMode) logger.log('verbose', `Monitor: Spectate mode active`)
+        logger.log('verbose', `Monitor: ${isGameRunning ? 'Game Running' : 'No Game'}`)
+        logger.log('verbose', `Monitor:`);
     }
 }
 

@@ -11,9 +11,9 @@ class GPUMiner {
         const isMinerRunning = await isProcessRunning(config.MINER_EXE_NAME);
         const data = await this.getData();
 
-        const hashRate = data ? Number.parseInt(data.cardStats) : false;
-        const minutes = data ? Number.parseInt(data.minutes) : false;
-        return { isExeRunning: isMinerRunning, minutes, hashRate: hashRate };
+        const hashRate = data ? Number.parseInt(data.cardStats) : 0;
+        const minutes = data ? Number.parseInt(data.minutes) : 0;
+        return { isExeRunning: isMinerRunning, hasData: !!data, minutes, hashRate: hashRate };
     }
 
     async pause() {
@@ -50,7 +50,7 @@ class GPUMiner {
 
         logger.log('info', `GPUMiner: spawning miner`);
         // spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: true });
-        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: true, windowsHide: true });
+        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: false });
     }
 
     async getData() {
