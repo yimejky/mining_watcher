@@ -7,13 +7,18 @@ const config = require('../config');
 const logger = require('./helpers/logger');
 
 class GPUMiner {
-    async isRunning() {
-        return isProcessRunning(config.MINER_EXE_NAME);
+    async getRunningStats() {
+        const isMinerRunning = await isProcessRunning(config.MINER_EXE_NAME);
+        const data = await this.getData();
+
+        const hashRate = data ? Number.parseInt(data.cardStats) : false;
+        const minutes = data ? Number.parseInt(data.minutes) : false;
+        return { isExeRunning: isMinerRunning, minutes, hashRate: hashRate };
     }
 
     async pause() {
-        const isRunning = await this.isRunning();
-        if (isRunning) {
+        const runningStats = await this.getRunningStats();
+        if (runningStats.isExeRunning) {
             logger.log('info', `GPUMiner: pausing miner`);
             await this.setGPUState(0);
         } else {
@@ -22,8 +27,8 @@ class GPUMiner {
     }
 
     async resume() {
-        const isRunning = await this.isRunning();
-        if (isRunning) {
+        const runningStats = await this.getRunningStats();
+        if (runningStats.isExeRunning) {
             logger.log('info', `GPUMiner: resuming miner`);
             await this.setGPUState(1);
         } else {
@@ -32,13 +37,13 @@ class GPUMiner {
     }
 
     async kill() {
-        logger.info('info', `GPUMiner: killing miner`);
+        logger.log('info', `GPUMiner: killing miner`);
         await exec(`taskkill -F -IM ${config.MINER_EXE_NAME}`);
     }
 
     async spawn() {
-        const isRunning = await this.isRunning();
-        if (isRunning) {
+        const runningStats = await this.getRunningStats();
+        if (runningStats.isExeRunning) {
             logger.log('info', `GPUMiner: cannot spawn miner, it is already running`);
             return;
         }
@@ -48,41 +53,45 @@ class GPUMiner {
         spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: true, windowsHide: true });
     }
 
-    // async getData() {
-    //     return new Promise((res, rej) => {
-    //         const client = new net.Socket();
+    async getData() {
+        return new Promise((res, rej) => {
+            const client = new net.Socket();
 
-    //         client.on('data', (data) => {
-    //             const response = JSON.parse(data.toString('utf8'));
-    //             if (response.error == null) {
-    //                 logger.info('info', "GPUMiner: data");
-    //                 const { result } = response;
+            client.on('data', (data) => {
+                const response = JSON.parse(data.toString('utf8'));
+                if (response.error == null) {
+                    logger.log('debug', "GPUMiner.socket: data");
+                    const { result } = response;
 
-    //                 const [, minutes, hashRate, cardStats] = result;
-    //                 logger.info('info', result);
-    //                 const obj = {
-    //                     minutes, hashRate, cardStats
-    //                 };
-    //                 res(obj);
-    //             }
-    //             client.end();
-    //         });
+                    const [, minutes, hashRate, cardStats] = result;
+                    logger.log('debug', `GPUMiner.socket: ${JSON.stringify(result, null, 2)}`);
+                    const obj = {
+                        minutes, hashRate, cardStats
+                    };
+                    res(obj);
+                }
+                client.end();
+            });
     
-    //         client.on('close', () => {
-    //             logger.info('info', "GPUMiner: connection closed");
-    //         });
-    
-    //         client.connect(config.MINER_PORT, config.MINER_IP, () => {
-    //             logger.info('info', "GPUMiner: connected");
-    //             const data = {
-    //                 "id": 0,
-    //                 "jsonrpc": "2.0",
-    //                 "method": "miner_getstat1"
-    //             };
-    //             client.write(`${JSON.stringify(data)}\n`);
-    //         });
-    //     });
-    // }
+            client.on('close', () => {
+                logger.log('debug', "GPUMiner.socket: connection closed");
+            });
+
+            client.on('error', (error) => {
+                res(false);
+            });
+
+            client.connect(config.MINER_PORT, config.MINER_IP, () => {
+                logger.log('debug', "GPUMiner.socket: connected");
+                const data = {
+                    "id": 0,
+                    "jsonrpc": "2.0",
+                    "method": "miner_getstat1"
+                };
+                client.write(`${JSON.stringify(data)}\n`);
+            });
+        });
+    }
 
     async setGPUState(state) {
         return new Promise((res, rej) => {
@@ -91,20 +100,20 @@ class GPUMiner {
             client.on('data', (data) => {
                 const response = JSON.parse(data.toString('utf8'));
                 if (response.error == null) {
-                    // logger.info('info', "GPUMiner: data");
+                    // logger.log('info', "GPUMiner: data");
                     const { result } = response;
-                    // logger.info('info', 'Debug json:', result);
+                    // logger.log('info', 'Debug json:', result);
                     res(result);
                 }
                 client.end();
             });
             
             // client.on('close', () => {
-            //     logger.info('info', "GPUMiner: connection closed");
+            //     logger.log('info', "GPUMiner: connection closed");
             // });
     
             client.connect(config.MINER_PORT, config.MINER_IP, () => {
-                // logger.info('info', "GPUMiner: connected");
+                // logger.log('info', "GPUMiner: connected");
                 const data = { 
                     "id": 0, 
                     "jsonrpc": "2.0", 

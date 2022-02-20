@@ -5,6 +5,31 @@ const logger = require('./helpers/logger');
 const config = require('../config');
 
 class GPUManager {
+    async getGpuInfo() {
+        const queryAttributes = [
+            'power.draw',
+            'power.limit',
+            'clocks.current.graphics',
+            'clocks.current.memory'
+        ].join(',');
+        const { stdout } = await exec(`nvidia-smi --query-gpu=${queryAttributes} --format=csv`);
+        const lines = stdout.split('\n');
+
+        const parsedLine = lines[1].replace(/[^0-9.,]/g, '');
+        const values = parsedLine.split(',');
+
+        const [powerDraw, powerLimit, clockGraphics, clockMemory] = values.map(str => {
+            const num = Number.parseFloat(str);
+            return Number.isNaN(num) ? 0 : num;
+        });
+
+        return {
+            actualWatt: powerDraw, maxWatt: powerLimit,
+            actualClock: clockGraphics,
+            actualMemoryClock: clockMemory
+        };
+    }
+
     async getGpuTemp() {
         const { stdout } = await exec('nvidia-smi');
 

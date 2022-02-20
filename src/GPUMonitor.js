@@ -1,6 +1,6 @@
 const { GPUManager } = require('./GPUManager');
 const { GPUMiner } = require('./GPUMiner');
-const { isProcessRunning } = require('./helpers/isProcessRunning');
+const { isSomeProcessesRunning } = require('./helpers/isProcessRunning');
 const config = require('../config');
 const logger = require('./helpers/logger');
 
@@ -43,42 +43,34 @@ class GPUMonitor {
         clearInterval(this.interval);
         this.interval = null;
 
-        await this.miner.pause();
+        await this.miner.kill();
     }
 
     async intervalFn() {
-        const [gpuTemp, isDotaRunning, isMinerRunning] = await Promise.all([
-            this.gpuManager.getGpuTemp(),
-            isProcessRunning('dota'),
-            this.miner.isRunning()
-        ])
+        const [gpuInfo, isGameRunning, minerRunningStats] = await Promise.all([
+            this.gpuManager.getGpuInfo(),
+            isSomeProcessesRunning(config.GAMES_EXES),
+            this.miner.getRunningStats()
+        ]);
 
-        const consume = `${gpuTemp.actualWatt}W/${gpuTemp.maxWatt}W`;
-        logger.log('verbose', `GPUMonitor: ${consume}, D${isDotaRunning ? '1' : '0'}, S${this.isInSpectateMode ? '1' : '0'}, M${isMinerRunning ? '1' : '0'}`);
+        const consume = `${gpuInfo.actualWatt}W/${gpuInfo.maxWatt}W`;
+        logger.log('verbose', `GPUMonitor: ${consume}, D${isGameRunning ? '1' : '0'}, S${this.isInSpectateMode ? '1' : '0'}, M${minerRunningStats.isExeRunning ? '1' : '0'}`);
 
-        if (!isMinerRunning) {
-            this.miner.resume();
-        }
+        const gpuConfigLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
+        const isMaxAboveLimit = gpuInfo.maxWatt > gpuConfigLimit;
+        const isMaxUnderLimit = gpuInfo.maxWatt < gpuConfigLimit;
 
-        const gpuLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
-        const isAboveLimit = gpuTemp.maxWatt > gpuLimit;
-        const underLimit = gpuTemp.maxWatt < gpuLimit;
+        if (this.isInSpectateMode) {
+            // spectate mode
+            if (!minerRunningStats.isExeRunning) await this.miner.resume();
+            if (isMaxAboveLimit) await this.gpuManager.setMiningProfile();
+        } else {
 
-        if (this.isInSpectateMode && isAboveLimit) {
-            await Promise.all([
-                this.miner.resume(),
-                this.gpuManager.setMiningProfile()
-            ]);
-        } else if (!this.isInSpectateMode && isDotaRunning && underLimit) {
-            await Promise.all([
-                this.miner.pause(),
-                this.gpuManager.setGamingProfile()
-            ]);
-        } else if (!this.isInSpectateMode && !isDotaRunning && isAboveLimit) {
-            await Promise.all([
-                this.miner.resume(),
-                this.gpuManager.setMiningProfile()
-            ]);
+            if (isGameRunning && minerRunningStats.isExeRunning) await this.miner.kill();
+            if (isGameRunning && isMaxUnderLimit) await this.gpuManager.setGamingProfile();
+
+            if (!isGameRunning && !minerRunningStats.isExeRunning) await this.miner.resume();
+            if (!isGameRunning && isMaxAboveLimit) await this.gpuManager.setMiningProfile();
         }
     }
 
@@ -89,6 +81,5 @@ class GPUMonitor {
 }
 
 module.exports = {
-    GPUMonitor,
-    isProcessRunning
+    GPUMonitor
 };

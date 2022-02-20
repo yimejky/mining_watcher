@@ -14,18 +14,18 @@ async function main() {
     rl.on('line', async (line) => {
         const cmd = line.trim();
 
-        if (cmd === 'exit' || cmd === 'e') {
+        if (['exit', 'e'].includes(cmd)) {
             await monitor.stop()
             rl.close();
             return;
         }
-        if (cmd === 'pause' || cmd === 'p') {
+        if (['pause', 'p'].includes(cmd)) {
             await monitor.stop();
         }
-        if (cmd === 'start' || cmd === 's') {
+        if (['start', 'resume', 's', 'r'].includes(cmd)) {
             await monitor.start();
         }
-        if (cmd === "spectate" || cmd === 'spec') {
+        if (['spectate', 'spec'].includes(cmd)) {
             monitor.toggleSpectateMode();
         }
 
