@@ -50,7 +50,7 @@ class GPUMiner {
 
         logger.log('info', `GPUMiner: spawning miner`);
         // spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: true });
-        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: false });
+        spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: config.SHOW_MINER_WINDOW });
     }
 
     async getData() {
@@ -78,6 +78,7 @@ class GPUMiner {
             });
 
             client.on('error', (error) => {
+                logger.log('debug', "GPUMiner.socket: connection error");
                 res(false);
             });
 

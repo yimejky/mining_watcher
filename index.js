@@ -1,4 +1,5 @@
 const { Monitor } = require('./src/Monitor');
+const logger = require('./src/helpers/logger');
 
 async function main() {
     const readline = require("readline");
@@ -38,7 +39,12 @@ async function main() {
     
     rl.prompt();
 
-    // TODO on process exit, clear miner
+    process.on('exit', () => {
+        logger.log('info', `exiting code`);
+        if (monitor.miner) {
+            monitor.miner.kill();
+        }
+    });
 }
 
 main();
