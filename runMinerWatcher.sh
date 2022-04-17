@@ -1,3 +1,5 @@
 #!/bin/sh
-cd "C:\Users\Nikolas\mining_watcher"
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+[ ! -d "./node_modules" ] && npm install
 npm start

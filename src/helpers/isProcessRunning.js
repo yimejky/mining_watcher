@@ -3,7 +3,7 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
 async function getRunningProcesses() {
-    const { stdout } = await exec(`tasklist -FO LIST | grep "Image Name:"`);
+    const { stdout } = await exec(`tasklist -FO LIST | find "Image Name:"`);
     const runningProcesses = stdout.replace(/Image Name\:   /g, '').split(os.EOL).map((str) => str.toLowerCase());
     return runningProcesses;
 }
