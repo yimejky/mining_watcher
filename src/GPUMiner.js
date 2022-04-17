@@ -7,6 +7,8 @@ const config = require('../config');
 const logger = require('./helpers/logger');
 
 class GPUMiner {
+    isSpawning = false;
+
     async getRunningStats() {
         const isMinerRunning = await isProcessRunning(config.MINER_EXE_NAME);
         const data = await this.getData();
@@ -47,6 +49,17 @@ class GPUMiner {
             logger.log('info', `GPUMiner: cannot spawn miner, it is already running`);
             return;
         }
+
+        if (this.isSpawning) {
+            logger.log('info', `GPUMiner: cannot spawn miner, another one still spawning`);
+            return;
+        }
+
+        this.isSpawning = true;
+        setTimeout(() => {
+            logger.log('info', `GPUMiner: clearing spawning cooldown`);
+            this.isSpawning = false;
+        }, config.MINER_SPAWN_TIMEOUT);
 
         logger.log('info', `GPUMiner: spawning miner`);
         // spawn(`${config.MINER_SCRIPT_PATH}`, { cwd: config.MINER_PATH, detached: false, windowsHide: true });
