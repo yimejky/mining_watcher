@@ -1,6 +1,6 @@
 const { GPUManager } = require('./GPUManager');
 const { GPUMiner } = require('./GPUMiner');
-const { isSomeProcessesRunning } = require('./helpers/isProcessRunning');
+const { getRunningGames } = require('./helpers/isProcessRunning');
 const config = require('../config');
 const logger = require('./helpers/logger');
 
@@ -46,11 +46,12 @@ class Monitor {
         const promises = [
             this.gpuManager.getGpuInfo(),
             this.miner.getRunningStats(),
-            isSomeProcessesRunning(config.GAMES_EXES),
+            getRunningGames(config.GAMES_EXES),
         ];
-        const [gpuInfo, minerRunningStats, isGameRunning] = await Promise.all(promises);
+        const [gpuInfo, minerRunningStats, runningGames] = await Promise.all(promises);
+        const isGameRunning = runningGames.length > 0;
 
-        this.printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning);
+        this.printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning, runningGames);
 
         const gpuConfigLimit = config.GPU_WATT_MINING_LIMIT + config.GPU_WATT_EPSILON;
         const isMaxAboveLimit = gpuInfo.maxWatt > gpuConfigLimit;
@@ -74,7 +75,7 @@ class Monitor {
         logger.log('info', `Monitor: toggling spectate mode: ${this.isInSpectateMode}`);
     }
 
-    printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning) {
+    printIntervalInfo(gpuInfo, minerRunningStats, isGameRunning, runningGames) {
         const { actualWatt, maxWatt } = gpuInfo;
         const { isExeRunning, hasData, minutes, hashRate } = minerRunningStats;
 
@@ -92,7 +93,7 @@ class Monitor {
         logger.log('verbose', `Monitor: GPU ${consume}`);
         logger.log('verbose', `Monitor: ${minerStatRender}`);
         if (this.isInSpectateMode) logger.log('verbose', `Monitor: Spectate mode active`)
-        logger.log('verbose', `Monitor: ${isGameRunning ? 'Game Running' : 'No Game'}`)
+        logger.log('verbose', `Monitor: ${isGameRunning ? `Game Running (${runningGames.join(', ')})` : 'No Game'}`)
         logger.log('verbose', `Monitor:`);
     }
 }
